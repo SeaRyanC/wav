@@ -47,6 +47,7 @@ const PLAYABLE_HEIGHT = SCREEN_HEIGHT - PLAYABLE_TOP - GROUND_HEIGHT;
 const GROUND_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
 const PLAYER_SIZE = 40;
 const PLAYER_GROUND_Y = GROUND_Y - PLAYER_SIZE / 2;
+const GROUND_DETECTION_THRESHOLD = 5; // Tolerance for detecting ground contact during held jumps
 
 // Simulate a jump trajectory and return positions at each time step
 // Returns array of {x, y, t} positions
@@ -68,7 +69,8 @@ function simulateJump(
     let holdTimeRemaining = holdDuration;
     
     // Simulate until we land back on ground
-    while (y <= PLAYER_GROUND_Y || vy < 0) {
+    // Use < instead of <= to avoid edge case where y equals ground with zero velocity
+    while (y < PLAYER_GROUND_Y || vy < 0) {
         positions.push({ x, y, t });
         
         // Apply gravity
@@ -79,7 +81,7 @@ function simulateJump(
         // For held jumps, we simulate multiple consecutive jump applications
         if (isHolding && holdTimeRemaining > 0) {
             // When player touches ground while holding, they immediately jump again
-            if (y >= PLAYER_GROUND_Y - 5 && vy >= 0) {
+            if (y >= PLAYER_GROUND_Y - GROUND_DETECTION_THRESHOLD && vy >= 0) {
                 vy = jumpForce;
             }
             holdTimeRemaining -= dt;
@@ -202,6 +204,9 @@ function calculateClearanceWindow(
     // jumpX + lastAboveX = obstacleX + obstacleWidth => jumpX = obstacleX + obstacleWidth - lastAboveX
     const earliestJumpX = obstacleX + obstacleWidth - lastAboveX;
     
+    // Use min/max to ensure we always return a valid range even if the obstacle
+    // is wider than the clearance distance (which would make earliestJumpX > latestJumpX).
+    // In such cases, we still return a valid window representing the best possible timing.
     return {
         earliestJumpX: Math.min(earliestJumpX, latestJumpX),
         latestJumpX: Math.max(earliestJumpX, latestJumpX),
@@ -228,7 +233,7 @@ function generateJumpWindowLevel(
     }
     
     // Jump window width scales down with difficulty
-    // At level 1: 200px window, at level 15: 60px window
+    // At level 1: ~208px window, at level 15: 60px window
     const baseWindowWidth = Math.max(220 - difficulty * 12, 60);
     
     // Spacing between obstacles (affects rest time between jumps)
