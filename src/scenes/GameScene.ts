@@ -115,8 +115,8 @@ export class GameScene extends Phaser.Scene {
             this.updateWaveMode(delta);
         }
         
-        // Update player position
-        this.player.x = this.worldX + 100;
+        // Update player position (offset from left edge for better obstacle visibility)
+        this.player.x = this.worldX + 200;
         
         // Check collisions
         this.checkCollisions();

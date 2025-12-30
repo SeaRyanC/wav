@@ -56,7 +56,7 @@ function generateObstacles(difficulty: number, length: number, mode: 'gravity' |
                     x,
                     y: 1,
                     width: 60 + difficulty * 3,
-                    height: 60 + difficulty * 4,
+                    height: 40 + difficulty * 2,
                     type: 'block'
                 });
             } else {
@@ -135,8 +135,8 @@ for (let i = 0; i < 15; i++) {
         name: `Level ${i + 1}`,
         mode,
         speed: 180 + difficulty * 15, // Faster at higher levels but still playable
-        gravity: mode === 'gravity' ? 800 + difficulty * 30 : 0,
-        jumpForce: mode === 'gravity' ? -350 - difficulty * 10 : -200 - difficulty * 8,
+        gravity: mode === 'gravity' ? 650 + difficulty * 25 : 0,
+        jumpForce: mode === 'gravity' ? -450 - difficulty * 8 : -200 - difficulty * 8,
         bgColor1: palette.bg1,
         bgColor2: palette.bg2,
         obstacleColor: palette.obstacle,
