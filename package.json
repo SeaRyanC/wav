@@ -1,0 +1,21 @@
+{
+  "name": "wav",
+  "version": "1.0.0",
+  "description": "A Geometry Dash / Wave Runner style HTML5 game",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --outfile=docs/game.js --format=iife --platform=browser --target=es2020 --minify",
+    "build:dev": "esbuild src/main.ts --bundle --outfile=docs/game.js --format=iife --platform=browser --target=es2020 --sourcemap",
+    "watch": "esbuild src/main.ts --bundle --outfile=docs/game.js --format=iife --platform=browser --target=es2020 --sourcemap --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["game", "phaser", "geometry-dash", "wave-runner"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.27.2",
+    "phaser": "^3.80.1",
+    "typescript": "^6.0.0-dev.20251230"
+  }
+}
