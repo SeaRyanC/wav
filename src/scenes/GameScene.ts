@@ -148,21 +148,110 @@ export class GameScene extends Phaser.Scene {
     private createBoundaries(width: number, height: number, groundHeight: number): void {
         const level = this.currentLevel;
         
-        // Ground
+        // Ground with jump window coloring
         this.ground = this.add.graphics();
-        this.ground.fillStyle(level.obstacleColor, 1);
-        this.ground.fillRect(0, height - groundHeight, level.length + width, groundHeight);
         
-        // Add decorative pattern to ground
-        this.ground.lineStyle(2, 0xffffff, 0.3);
-        for (let x = 0; x < level.length + width; x += 40) {
-            this.ground.lineBetween(x, height - groundHeight, x + 20, height);
-        }
+        // Create colored ground segments based on jump windows
+        this.createJumpWindowFloor(this.ground, height, groundHeight, level);
         
         // Ceiling (for wave mode)
         this.ceiling = this.add.graphics();
         this.ceiling.fillStyle(level.obstacleColor, 1);
         this.ceiling.fillRect(0, 0, level.length + width, this.playableTop);
+    }
+    
+    private createJumpWindowFloor(
+        graphics: Phaser.GameObjects.Graphics,
+        height: number,
+        groundHeight: number,
+        level: LevelConfig
+    ): void {
+        const groundY = height - groundHeight;
+        const totalWidth = level.length + 1024;
+        
+        // Define colors for different zones
+        const normalColor = level.obstacleColor;
+        const tapJumpColor = 0x00ff88;   // Bright green for tap jumps
+        const holdJumpColor = 0xff8800;  // Orange for held jumps
+        
+        // Sort jump windows by startX
+        const windows = [...level.jumpWindows].sort((a, b) => a.startX - b.startX);
+        
+        // Draw ground segments
+        let currentX = 0;
+        
+        for (const window of windows) {
+            // Draw normal ground up to this jump window
+            if (currentX < window.startX) {
+                graphics.fillStyle(normalColor, 1);
+                graphics.fillRect(currentX, groundY, window.startX - currentX, groundHeight);
+                
+                // Add subtle decorative lines
+                graphics.lineStyle(2, 0xffffff, 0.15);
+                for (let x = currentX; x < window.startX; x += 40) {
+                    graphics.lineBetween(x, groundY, x + 20, height);
+                }
+            }
+            
+            // Draw the jump window zone
+            const jumpColor = window.type === 'hold' ? holdJumpColor : tapJumpColor;
+            const windowWidth = window.endX - window.startX;
+            
+            // Main colored zone
+            graphics.fillStyle(jumpColor, 0.7);
+            graphics.fillRect(window.startX, groundY, windowWidth, groundHeight);
+            
+            // Add glow effect at top of jump zone
+            graphics.fillStyle(jumpColor, 0.3);
+            graphics.fillRect(window.startX, groundY - 8, windowWidth, 8);
+            
+            // Add pulsing markers/chevrons in the jump zone
+            graphics.lineStyle(3, 0xffffff, 0.6);
+            const chevronSpacing = 25;
+            const chevronHeight = 12;
+            for (let x = window.startX + 10; x < window.endX - 10; x += chevronSpacing) {
+                // Draw upward-pointing chevron (^) to indicate "jump here"
+                graphics.beginPath();
+                graphics.moveTo(x, groundY + chevronHeight + 5);
+                graphics.lineTo(x + 8, groundY + 5);
+                graphics.lineTo(x + 16, groundY + chevronHeight + 5);
+                graphics.strokePath();
+            }
+            
+            // For held jumps, add additional indicator (double chevron or bar)
+            if (window.type === 'hold') {
+                graphics.lineStyle(2, 0xffffff, 0.5);
+                for (let x = window.startX + 10; x < window.endX - 10; x += chevronSpacing) {
+                    // Second chevron below
+                    graphics.beginPath();
+                    graphics.moveTo(x, groundY + chevronHeight + 15);
+                    graphics.lineTo(x + 8, groundY + 15);
+                    graphics.lineTo(x + 16, groundY + chevronHeight + 15);
+                    graphics.strokePath();
+                }
+                
+                // Add a "HOLD" indicator bar at the bottom
+                graphics.fillStyle(0xffffff, 0.4);
+                graphics.fillRect(window.startX + 5, height - 10, windowWidth - 10, 6);
+            }
+            
+            // Border around jump zone
+            graphics.lineStyle(2, 0xffffff, 0.4);
+            graphics.strokeRect(window.startX, groundY, windowWidth, groundHeight);
+            
+            currentX = window.endX;
+        }
+        
+        // Draw remaining ground after last jump window
+        if (currentX < totalWidth) {
+            graphics.fillStyle(normalColor, 1);
+            graphics.fillRect(currentX, groundY, totalWidth - currentX, groundHeight);
+            
+            graphics.lineStyle(2, 0xffffff, 0.15);
+            for (let x = currentX; x < totalWidth; x += 40) {
+                graphics.lineBetween(x, groundY, x + 20, height);
+            }
+        }
     }
     
     private createPlayer(width: number, height: number, groundHeight: number): void {
