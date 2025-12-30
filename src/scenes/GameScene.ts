@@ -11,18 +11,14 @@ interface GameSceneData {
 
 export class GameScene extends Phaser.Scene {
     private player!: Phaser.GameObjects.Graphics;
-    private playerBody!: Phaser.Physics.Arcade.Body;
     private obstacles: Phaser.GameObjects.Graphics[] = [];
-    private obstacleBodies: Phaser.Physics.Arcade.Body[] = [];
     private currentLevel!: LevelConfig;
     private levelIndex: number = 0;
     private isHolding: boolean = false;
     private isDead: boolean = false;
     private worldX: number = 0;
     private ground!: Phaser.GameObjects.Graphics;
-    private groundBody!: Phaser.Physics.Arcade.StaticBody;
     private ceiling!: Phaser.GameObjects.Graphics;
-    private ceilingBody!: Phaser.Physics.Arcade.StaticBody;
     private synth: AudioSynth | null = null;
     private midiGenerator: MusicGenerator | null = null;
     private hasMidi: boolean = false;
@@ -45,7 +41,6 @@ export class GameScene extends Phaser.Scene {
         this.isHolding = false;
         this.worldX = 0;
         this.obstacles = [];
-        this.obstacleBodies = [];
         this.particles = [];
     }
     

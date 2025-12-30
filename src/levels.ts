@@ -28,9 +28,6 @@ export interface LevelConfig {
     musicKey: string;               // Musical key
 }
 
-// C major scale notes as MIDI values
-const C_MAJOR = [60, 62, 64, 65, 67, 69, 71, 72]; // C4 to C5
-
 // Generate obstacles procedurally based on difficulty
 function generateObstacles(difficulty: number, length: number, mode: 'gravity' | 'wave'): Obstacle[] {
     const obstacles: Obstacle[] = [];
