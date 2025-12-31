@@ -115,6 +115,22 @@ function simulateJump(
     return positions;
 }
 
+// Calculate the hold duration needed for N consecutive jumps
+// Returns duration in seconds
+function calculateHoldDurationForJumps(
+    numJumps: number,
+    jumpForce: number,
+    gravity: number
+): number {
+    // Single jump air time = 2 * |jumpForce| / gravity (going up and coming down)
+    // For N jumps, we need to hold long enough for (N-1) complete jumps + landing
+    // Add a small buffer for safety
+    const singleJumpTime = 2 * Math.abs(jumpForce) / gravity;
+    // Hold duration needs to cover (N-1) landings so the player re-jumps each time
+    // Add a small buffer to ensure the last jump triggers
+    return (numJumps - 1) * singleJumpTime + 0.15;
+}
+
 // Calculate where player needs to be in the air to clear an obstacle
 function calculateClearanceWindow(
     obstacleX: number,
@@ -250,25 +266,41 @@ function generateJumpWindowLevel(
     
     let x = 600; // Start after initial safe zone
     let obstacleCount = 0;
-    let hasHadHeldJump = false; // Track if we've had a held jump for level 1
+    
+    // For Level 1, track held jump sequences (2, 3, and 4 jumps)
+    // A held jump that doesn't allow multiple jumps doesn't make sense - it's just a tap
+    const level1HeldJumpSequence = [2, 3, 4]; // Number of jumps for each held window in Level 1
+    let level1HeldJumpIndex = 0;
     
     while (x < length - 400) {
         // Determine obstacle type and height
         const rand = Math.random();
-        // Force at least one held jump for level 1, otherwise use normal probability
-        const forceHeldForLevel1 = difficulty === 1 && !hasHadHeldJump && obstacleCount >= 2;
+        // For Level 1: force held jumps at specific intervals to teach the mechanic with 2, 3, 4 jump sequences
+        const forceHeldForLevel1 = difficulty === 1 && 
+            level1HeldJumpIndex < level1HeldJumpSequence.length && 
+            obstacleCount >= 2 + level1HeldJumpIndex * 3; // Space out held jumps
         const isHoldJump = forceHeldForLevel1 || (rand < holdJumpProbability && difficulty >= 2);
         
         let obstacleHeight: number;
         let obstacleWidth: number;
         let obstacleType: 'spike' | 'block' | 'gap';
         
+        // For Level 1 held jumps, get the number of jumps for this sequence
+        let numJumpsForHold = 2; // Default for held jumps in other levels
+        if (forceHeldForLevel1) {
+            // Array bounds already validated by level1HeldJumpIndex < level1HeldJumpSequence.length
+            numJumpsForHold = level1HeldJumpSequence[level1HeldJumpIndex]!;
+        }
+        
         if (isHoldJump) {
-            // Taller obstacle requiring held jump
-            obstacleHeight = baseObstacleHeight + 30 + Math.random() * 20;
-            obstacleWidth = 50 + difficulty * 2;
+            // Taller obstacle requiring held jump - height scales with number of jumps needed
+            obstacleHeight = baseObstacleHeight + 20 + numJumpsForHold * 10 + Math.random() * 10;
+            // Width also scales - player needs to stay airborne longer for more jumps
+            obstacleWidth = 40 + numJumpsForHold * 20 + difficulty * 2;
             obstacleType = 'block';
-            hasHadHeldJump = true;
+            if (forceHeldForLevel1) {
+                level1HeldJumpIndex++;
+            }
         } else if (rand < 0.5) {
             // Standard spike
             obstacleHeight = baseObstacleHeight + Math.random() * obstacleHeightVariation;
@@ -344,11 +376,23 @@ function generateJumpWindowLevel(
             
             // Add the jump window
             // Use isHoldJump to force the type if we specifically want a held jump obstacle
+            // For held jumps, calculate duration based on number of jumps needed
+            let holdDurationMs: number | undefined;
+            if (isHoldJump || clearance.needsHold) {
+                // For Level 1 held jumps, use calculated duration for multiple jumps
+                // Otherwise use the clearance calculation or a reasonable default
+                if (isHoldJump && numJumpsForHold >= 2) {
+                    holdDurationMs = calculateHoldDurationForJumps(numJumpsForHold, jumpForce, gravity) * 1000;
+                } else {
+                    holdDurationMs = (clearance.holdDuration ?? 0.5) * 1000;
+                }
+            }
+            
             const jumpWindow: JumpWindow = {
                 startX: windowStart,
                 endX: windowEnd,
                 type: isHoldJump || clearance.needsHold ? 'hold' : 'tap',
-                holdDuration: (isHoldJump || clearance.needsHold) ? (clearance.holdDuration ?? 0.2) * 1000 : undefined
+                holdDuration: holdDurationMs
             };
             jumpWindows.push(jumpWindow);
         }
@@ -450,7 +494,9 @@ for (let i = 0; i < 15; i++) {
     
     if (!palette) continue;
     
-    const speed = 180 + difficulty * 12; // Slightly slower progression for better gameplay
+    const baseSpeed = 180 + difficulty * 12;
+    // Gravity mode is 40% faster for more exciting gameplay
+    const speed = mode === 'gravity' ? Math.round(baseSpeed * 1.4) : baseSpeed;
     const gravity = mode === 'gravity' ? 650 + difficulty * 20 : 0;
     const jumpForce = mode === 'gravity' ? -420 - difficulty * 6 : -200 - difficulty * 6;
     
