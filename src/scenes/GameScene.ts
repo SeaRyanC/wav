@@ -96,8 +96,13 @@ export class GameScene extends Phaser.Scene {
         this.setupControls();
         
         // Camera follows player
+        // Position player on LEFT side of screen so more upcoming terrain is visible
+        // The camera scrollX determines what portion of the world is visible
+        // By setting a negative follow offset, the camera "lags behind" the player,
+        // making the player appear on the left side of the screen
         this.cameras.main.startFollow(this.player, true, 0.1, 0);
-        this.cameras.main.setDeadzone(width * 0.3, height);
+        this.cameras.main.setFollowOffset(-width * 0.35, 0);  // Camera lags behind, player appears on left
+        this.cameras.main.setDeadzone(width * 0.1, height);
     }
     
     update(time: number, delta: number): void {
