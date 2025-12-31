@@ -28,6 +28,18 @@ export class GameScene extends Phaser.Scene {
     private playableTop: number = 0;
     private playableHeight: number = 0;
     
+    // Ground and gap warning marker constants
+    private readonly GROUND_HEIGHT = 50;
+    private readonly GAP_WARNING_MARKER_HEIGHT = 80;
+    private readonly GAP_WARNING_MARKER_WIDTH = 10;
+    private readonly GAP_WARNING_MARKER_OFFSET = 5;
+    private readonly GAP_WARNING_TRIANGLE_OFFSET = 15;
+    private readonly GAP_WARNING_TRIANGLE_INDENT = 20;
+    private readonly GAP_STRIPE_SPACING = 20;
+    private readonly GAP_STRIPE_WIDTH = 10;
+    private readonly GAP_STRIPE_START_OFFSET = 10;
+    private readonly GAP_STRIPE_END_OFFSET = 30;
+    
     constructor() {
         super({ key: 'GameScene' });
     }
@@ -65,20 +77,19 @@ export class GameScene extends Phaser.Scene {
         }
         
         // Set playable area (leave room for UI and ground)
-        const groundHeight = 50;
         const topMargin = 60;
         this.playableTop = topMargin;
-        this.playableHeight = height - topMargin - groundHeight;
+        this.playableHeight = height - topMargin - this.GROUND_HEIGHT;
         
         // Create gradient background
         this.bgGraphics = this.add.graphics();
         this.createGradientBackground(this.bgGraphics, width, height, this.currentLevel.bgColor1, this.currentLevel.bgColor2);
         
         // Create ground (for gravity mode) or boundaries (for wave mode)
-        this.createBoundaries(width, height, groundHeight);
+        this.createBoundaries(width, height);
         
         // Create player
-        this.createPlayer(width, height, groundHeight);
+        this.createPlayer(width, height);
         
         // Create obstacles
         this.createObstacles();
@@ -145,14 +156,14 @@ export class GameScene extends Phaser.Scene {
         }
     }
     
-    private createBoundaries(width: number, height: number, groundHeight: number): void {
+    private createBoundaries(width: number, height: number): void {
         const level = this.currentLevel;
         
         // Ground with jump window coloring
         this.ground = this.add.graphics();
         
         // Create colored ground segments based on jump windows
-        this.createJumpWindowFloor(this.ground, height, groundHeight, level);
+        this.createJumpWindowFloor(this.ground, height, level);
         
         // Ceiling (for wave mode)
         this.ceiling = this.add.graphics();
@@ -163,10 +174,9 @@ export class GameScene extends Phaser.Scene {
     private createJumpWindowFloor(
         graphics: Phaser.GameObjects.Graphics,
         height: number,
-        groundHeight: number,
         level: LevelConfig
     ): void {
-        const groundY = height - groundHeight;
+        const groundY = height - this.GROUND_HEIGHT;
         const totalWidth = level.length + 1024;
         
         // Define colors for different zones
@@ -184,7 +194,7 @@ export class GameScene extends Phaser.Scene {
             // Draw normal ground up to this jump window
             if (currentX < window.startX) {
                 graphics.fillStyle(normalColor, 1);
-                graphics.fillRect(currentX, groundY, window.startX - currentX, groundHeight);
+                graphics.fillRect(currentX, groundY, window.startX - currentX, this.GROUND_HEIGHT);
                 
                 // Add subtle decorative lines
                 graphics.lineStyle(2, 0xffffff, 0.15);
@@ -199,7 +209,7 @@ export class GameScene extends Phaser.Scene {
             
             // Main colored zone
             graphics.fillStyle(jumpColor, 0.7);
-            graphics.fillRect(window.startX, groundY, windowWidth, groundHeight);
+            graphics.fillRect(window.startX, groundY, windowWidth, this.GROUND_HEIGHT);
             
             // Add glow effect at top of jump zone
             graphics.fillStyle(jumpColor, 0.3);
@@ -237,7 +247,7 @@ export class GameScene extends Phaser.Scene {
             
             // Border around jump zone
             graphics.lineStyle(2, 0xffffff, 0.4);
-            graphics.strokeRect(window.startX, groundY, windowWidth, groundHeight);
+            graphics.strokeRect(window.startX, groundY, windowWidth, this.GROUND_HEIGHT);
             
             currentX = window.endX;
         }
@@ -245,7 +255,7 @@ export class GameScene extends Phaser.Scene {
         // Draw remaining ground after last jump window
         if (currentX < totalWidth) {
             graphics.fillStyle(normalColor, 1);
-            graphics.fillRect(currentX, groundY, totalWidth - currentX, groundHeight);
+            graphics.fillRect(currentX, groundY, totalWidth - currentX, this.GROUND_HEIGHT);
             
             graphics.lineStyle(2, 0xffffff, 0.15);
             for (let x = currentX; x < totalWidth; x += 40) {
@@ -254,7 +264,7 @@ export class GameScene extends Phaser.Scene {
         }
     }
     
-    private createPlayer(width: number, height: number, groundHeight: number): void {
+    private createPlayer(width: number, height: number): void {
         const level = this.currentLevel;
         const playerSize = 40;
         
@@ -275,7 +285,7 @@ export class GameScene extends Phaser.Scene {
         this.player.x = 100;
         
         if (level.mode === 'gravity') {
-            this.player.y = height - groundHeight - playerSize / 2;
+            this.player.y = height - this.GROUND_HEIGHT - playerSize / 2;
         } else {
             this.player.y = height / 2;
         }
@@ -287,7 +297,6 @@ export class GameScene extends Phaser.Scene {
     private createObstacles(): void {
         const level = this.currentLevel;
         const height = this.cameras.main.height;
-        const groundHeight = 50;
         
         for (const obstacle of level.obstacles) {
             const graphics = this.add.graphics();
@@ -299,7 +308,7 @@ export class GameScene extends Phaser.Scene {
             if (level.mode === 'gravity') {
                 // For gravity mode, y=1 means ground level
                 obsHeight = obstacle.height;
-                obsY = height - groundHeight - obsHeight;
+                obsY = height - this.GROUND_HEIGHT - obsHeight;
             } else {
                 // For wave mode, y is percentage of playable area
                 obsY = this.playableTop + obstacle.y * this.playableHeight;
@@ -332,60 +341,50 @@ export class GameScene extends Phaser.Scene {
             } else if (obstacle.type === 'gap') {
                 // Gap is an absence - draw pit markers on ground
                 graphics.fillStyle(0x000000, 0.5);
-                graphics.fillRect(obstacle.x, height - groundHeight, obstacle.width, groundHeight);
+                graphics.fillRect(obstacle.x, height - this.GROUND_HEIGHT, obstacle.width, this.GROUND_HEIGHT);
                 
                 // Add visual warning markers above the gap to indicate danger (gravity mode only)
                 if (level.mode === 'gravity') {
-                    const WARNING_MARKER_HEIGHT = 80;
-                    const WARNING_MARKER_WIDTH = 10;
-                    const WARNING_MARKER_OFFSET = 5;
-                    const WARNING_TRIANGLE_OFFSET = 15;
-                    const WARNING_TRIANGLE_INDENT = 20;
-                    const STRIPE_SPACING = 20;
-                    const STRIPE_WIDTH = 10;
-                    const STRIPE_START_OFFSET = 10;
-                    const STRIPE_END_OFFSET = 30;
-                    
                     // Draw hazard warning markers at gap edges
                     graphics.lineStyle(3, 0xff0000, 0.8);
                     graphics.fillStyle(0xff0000, 0.3);
                     
                     // Left edge warning marker
                     graphics.fillRect(
-                        obstacle.x - WARNING_MARKER_OFFSET,
-                        height - groundHeight - WARNING_MARKER_HEIGHT,
-                        WARNING_MARKER_WIDTH,
-                        WARNING_MARKER_HEIGHT
+                        obstacle.x - this.GAP_WARNING_MARKER_OFFSET,
+                        height - this.GROUND_HEIGHT - this.GAP_WARNING_MARKER_HEIGHT,
+                        this.GAP_WARNING_MARKER_WIDTH,
+                        this.GAP_WARNING_MARKER_HEIGHT
                     );
                     graphics.beginPath();
-                    graphics.moveTo(obstacle.x - WARNING_TRIANGLE_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT);
-                    graphics.lineTo(obstacle.x + WARNING_MARKER_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT + WARNING_TRIANGLE_INDENT);
-                    graphics.lineTo(obstacle.x + WARNING_MARKER_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT - WARNING_TRIANGLE_INDENT);
+                    graphics.moveTo(obstacle.x - this.GAP_WARNING_TRIANGLE_OFFSET, height - this.GROUND_HEIGHT - this.GAP_WARNING_MARKER_HEIGHT);
+                    graphics.lineTo(obstacle.x + this.GAP_WARNING_MARKER_OFFSET, height - this.GROUND_HEIGHT - this.GAP_WARNING_MARKER_HEIGHT + this.GAP_WARNING_TRIANGLE_INDENT);
+                    graphics.lineTo(obstacle.x + this.GAP_WARNING_MARKER_OFFSET, height - this.GROUND_HEIGHT - this.GAP_WARNING_MARKER_HEIGHT - this.GAP_WARNING_TRIANGLE_INDENT);
                     graphics.closePath();
                     graphics.fillPath();
                     graphics.strokePath();
                     
                     // Right edge warning marker
                     graphics.fillRect(
-                        obstacle.x + obstacle.width - WARNING_MARKER_OFFSET,
-                        height - groundHeight - WARNING_MARKER_HEIGHT,
-                        WARNING_MARKER_WIDTH,
-                        WARNING_MARKER_HEIGHT
+                        obstacle.x + obstacle.width - this.GAP_WARNING_MARKER_OFFSET,
+                        height - this.GROUND_HEIGHT - this.GAP_WARNING_MARKER_HEIGHT,
+                        this.GAP_WARNING_MARKER_WIDTH,
+                        this.GAP_WARNING_MARKER_HEIGHT
                     );
                     graphics.beginPath();
-                    graphics.moveTo(obstacle.x + obstacle.width + WARNING_TRIANGLE_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT);
-                    graphics.lineTo(obstacle.x + obstacle.width - WARNING_MARKER_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT + WARNING_TRIANGLE_INDENT);
-                    graphics.lineTo(obstacle.x + obstacle.width - WARNING_MARKER_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT - WARNING_TRIANGLE_INDENT);
+                    graphics.moveTo(obstacle.x + obstacle.width + this.GAP_WARNING_TRIANGLE_OFFSET, height - this.GROUND_HEIGHT - this.GAP_WARNING_MARKER_HEIGHT);
+                    graphics.lineTo(obstacle.x + obstacle.width - this.GAP_WARNING_MARKER_OFFSET, height - this.GROUND_HEIGHT - this.GAP_WARNING_MARKER_HEIGHT + this.GAP_WARNING_TRIANGLE_INDENT);
+                    graphics.lineTo(obstacle.x + obstacle.width - this.GAP_WARNING_MARKER_OFFSET, height - this.GROUND_HEIGHT - this.GAP_WARNING_MARKER_HEIGHT - this.GAP_WARNING_TRIANGLE_INDENT);
                     graphics.closePath();
                     graphics.fillPath();
                     graphics.strokePath();
                     
                     // Draw hazard stripes across the gap
                     graphics.lineStyle(2, 0xffff00, 0.7);
-                    for (let i = 0; i < obstacle.width; i += STRIPE_SPACING) {
+                    for (let i = 0; i < obstacle.width; i += this.GAP_STRIPE_SPACING) {
                         graphics.beginPath();
-                        graphics.moveTo(obstacle.x + i, height - groundHeight - STRIPE_START_OFFSET);
-                        graphics.lineTo(obstacle.x + i + STRIPE_WIDTH, height - groundHeight - STRIPE_END_OFFSET);
+                        graphics.moveTo(obstacle.x + i, height - this.GROUND_HEIGHT - this.GAP_STRIPE_START_OFFSET);
+                        graphics.lineTo(obstacle.x + i + this.GAP_STRIPE_WIDTH, height - this.GROUND_HEIGHT - this.GAP_STRIPE_END_OFFSET);
                         graphics.strokePath();
                     }
                 }
@@ -427,8 +426,7 @@ export class GameScene extends Phaser.Scene {
     private updateGravityMode(delta: number): void {
         const level = this.currentLevel;
         const height = this.cameras.main.height;
-        const groundHeight = 50;
-        const groundY = height - groundHeight - 20; // Player bottom should be at ground
+        const groundY = height - this.GROUND_HEIGHT - 20; // Player bottom should be at ground
         
         const playerData = this.player as Phaser.GameObjects.Graphics & { velocityY: number };
         
@@ -462,7 +460,6 @@ export class GameScene extends Phaser.Scene {
     private updateWaveMode(delta: number): void {
         const level = this.currentLevel;
         const height = this.cameras.main.height;
-        const groundHeight = 50;
         
         const playerData = this.player as Phaser.GameObjects.Graphics & { velocityY: number };
         
@@ -480,7 +477,7 @@ export class GameScene extends Phaser.Scene {
         
         // Boundary checks with forgiving margins
         const topBound = this.playableTop + 20;
-        const bottomBound = height - groundHeight - 20;
+        const bottomBound = height - this.GROUND_HEIGHT - 20;
         
         if (this.player.y < topBound) {
             this.player.y = topBound;
@@ -508,8 +505,7 @@ export class GameScene extends Phaser.Scene {
                 // For gaps, check if player fell into the pit
                 if (this.currentLevel.mode === 'gravity') {
                     const height = this.cameras.main.height;
-                    const groundHeight = 50;
-                    if (playerX > data.x && playerX < data.x + data.width && playerY > height - groundHeight - 10) {
+                    if (playerX > data.x && playerX < data.x + data.width && playerY > height - this.GROUND_HEIGHT - 10) {
                         this.die();
                         return;
                     }
@@ -538,9 +534,8 @@ export class GameScene extends Phaser.Scene {
         // Check ceiling/ground collision for wave mode
         if (this.currentLevel.mode === 'wave') {
             const height = this.cameras.main.height;
-            const groundHeight = 50;
             
-            if (playerY <= this.playableTop + 5 || playerY >= height - groundHeight - 5) {
+            if (playerY <= this.playableTop + 5 || playerY >= height - this.GROUND_HEIGHT - 5) {
                 // Don't die on boundaries in wave mode - just constrain
             }
         }
