@@ -330,9 +330,43 @@ export class GameScene extends Phaser.Scene {
                     graphics.lineBetween(obstacle.x, obsY + i, obstacle.x + obstacle.width, obsY + i);
                 }
             } else if (obstacle.type === 'gap') {
-                // Gap is an absence - draw pit markers
+                // Gap is an absence - draw pit markers on ground
                 graphics.fillStyle(0x000000, 0.5);
                 graphics.fillRect(obstacle.x, height - groundHeight, obstacle.width, groundHeight);
+                
+                // Add visual warning markers above the gap to indicate danger
+                // Draw hazard stripes above the gap entrance
+                graphics.lineStyle(3, 0xff0000, 0.8);
+                graphics.fillStyle(0xff0000, 0.3);
+                
+                // Left edge warning
+                graphics.fillRect(obstacle.x - 5, height - groundHeight - 80, 10, 80);
+                graphics.beginPath();
+                graphics.moveTo(obstacle.x - 15, height - groundHeight - 80);
+                graphics.lineTo(obstacle.x + 5, height - groundHeight - 60);
+                graphics.lineTo(obstacle.x + 5, height - groundHeight - 100);
+                graphics.closePath();
+                graphics.fillPath();
+                graphics.strokePath();
+                
+                // Right edge warning
+                graphics.fillRect(obstacle.x + obstacle.width - 5, height - groundHeight - 80, 10, 80);
+                graphics.beginPath();
+                graphics.moveTo(obstacle.x + obstacle.width + 15, height - groundHeight - 80);
+                graphics.lineTo(obstacle.x + obstacle.width - 5, height - groundHeight - 60);
+                graphics.lineTo(obstacle.x + obstacle.width - 5, height - groundHeight - 100);
+                graphics.closePath();
+                graphics.fillPath();
+                graphics.strokePath();
+                
+                // Draw hazard stripes across the gap
+                graphics.lineStyle(2, 0xffff00, 0.7);
+                for (let i = 0; i < obstacle.width; i += 20) {
+                    graphics.beginPath();
+                    graphics.moveTo(obstacle.x + i, height - groundHeight - 10);
+                    graphics.lineTo(obstacle.x + i + 10, height - groundHeight - 30);
+                    graphics.strokePath();
+                }
             }
             
             this.obstacles.push(graphics);
