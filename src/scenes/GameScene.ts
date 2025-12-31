@@ -447,13 +447,16 @@ export class GameScene extends Phaser.Scene {
             const data = (obstacle as Phaser.GameObjects.Graphics & { obstacleData: { x: number; y: number; width: number; height: number; type: string } }).obstacleData;
             if (!data) continue;
             
-            // Skip gaps for collision (they're just visual)
+            // Check gap collision
             if (data.type === 'gap') {
-                // For gaps, check if player fell into the pit
+                // For gaps, check if player is at/near ground level while over the gap
                 if (this.currentLevel.mode === 'gravity') {
                     const height = this.cameras.main.height;
                     const groundHeight = 50;
-                    if (playerX > data.x && playerX < data.x + data.width && playerY > height - groundHeight - 10) {
+                    const groundY = height - groundHeight - 20; // Same as updateGravityMode
+                    // Player dies if they're over the gap and not jumping high enough
+                    // Check if player is within gap horizontally and near/at ground level
+                    if (playerX > data.x && playerX < data.x + data.width && playerY >= groundY - 30) {
                         this.die();
                         return;
                     }
