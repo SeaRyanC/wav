@@ -348,7 +348,7 @@ function generateJumpWindowLevel(
                 startX: windowStart,
                 endX: windowEnd,
                 type: isHoldJump || clearance.needsHold ? 'hold' : 'tap',
-                holdDuration: (isHoldJump || clearance.needsHold) ? (clearance.holdDuration * 1000 || 200) : undefined
+                holdDuration: (isHoldJump || clearance.needsHold) ? (clearance.holdDuration ?? 0.2) * 1000 : undefined
             };
             jumpWindows.push(jumpWindow);
         }
