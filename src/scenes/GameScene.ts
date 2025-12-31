@@ -334,38 +334,60 @@ export class GameScene extends Phaser.Scene {
                 graphics.fillStyle(0x000000, 0.5);
                 graphics.fillRect(obstacle.x, height - groundHeight, obstacle.width, groundHeight);
                 
-                // Add visual warning markers above the gap to indicate danger
-                // Draw hazard stripes above the gap entrance
-                graphics.lineStyle(3, 0xff0000, 0.8);
-                graphics.fillStyle(0xff0000, 0.3);
-                
-                // Left edge warning
-                graphics.fillRect(obstacle.x - 5, height - groundHeight - 80, 10, 80);
-                graphics.beginPath();
-                graphics.moveTo(obstacle.x - 15, height - groundHeight - 80);
-                graphics.lineTo(obstacle.x + 5, height - groundHeight - 60);
-                graphics.lineTo(obstacle.x + 5, height - groundHeight - 100);
-                graphics.closePath();
-                graphics.fillPath();
-                graphics.strokePath();
-                
-                // Right edge warning
-                graphics.fillRect(obstacle.x + obstacle.width - 5, height - groundHeight - 80, 10, 80);
-                graphics.beginPath();
-                graphics.moveTo(obstacle.x + obstacle.width + 15, height - groundHeight - 80);
-                graphics.lineTo(obstacle.x + obstacle.width - 5, height - groundHeight - 60);
-                graphics.lineTo(obstacle.x + obstacle.width - 5, height - groundHeight - 100);
-                graphics.closePath();
-                graphics.fillPath();
-                graphics.strokePath();
-                
-                // Draw hazard stripes across the gap
-                graphics.lineStyle(2, 0xffff00, 0.7);
-                for (let i = 0; i < obstacle.width; i += 20) {
+                // Add visual warning markers above the gap to indicate danger (gravity mode only)
+                if (level.mode === 'gravity') {
+                    const WARNING_MARKER_HEIGHT = 80;
+                    const WARNING_MARKER_WIDTH = 10;
+                    const WARNING_MARKER_OFFSET = 5;
+                    const WARNING_TRIANGLE_OFFSET = 15;
+                    const WARNING_TRIANGLE_INDENT = 20;
+                    const STRIPE_SPACING = 20;
+                    const STRIPE_WIDTH = 10;
+                    const STRIPE_START_OFFSET = 10;
+                    const STRIPE_END_OFFSET = 30;
+                    
+                    // Draw hazard warning markers at gap edges
+                    graphics.lineStyle(3, 0xff0000, 0.8);
+                    graphics.fillStyle(0xff0000, 0.3);
+                    
+                    // Left edge warning marker
+                    graphics.fillRect(
+                        obstacle.x - WARNING_MARKER_OFFSET,
+                        height - groundHeight - WARNING_MARKER_HEIGHT,
+                        WARNING_MARKER_WIDTH,
+                        WARNING_MARKER_HEIGHT
+                    );
                     graphics.beginPath();
-                    graphics.moveTo(obstacle.x + i, height - groundHeight - 10);
-                    graphics.lineTo(obstacle.x + i + 10, height - groundHeight - 30);
+                    graphics.moveTo(obstacle.x - WARNING_TRIANGLE_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT);
+                    graphics.lineTo(obstacle.x + WARNING_MARKER_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT + WARNING_TRIANGLE_INDENT);
+                    graphics.lineTo(obstacle.x + WARNING_MARKER_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT - WARNING_TRIANGLE_INDENT);
+                    graphics.closePath();
+                    graphics.fillPath();
                     graphics.strokePath();
+                    
+                    // Right edge warning marker
+                    graphics.fillRect(
+                        obstacle.x + obstacle.width - WARNING_MARKER_OFFSET,
+                        height - groundHeight - WARNING_MARKER_HEIGHT,
+                        WARNING_MARKER_WIDTH,
+                        WARNING_MARKER_HEIGHT
+                    );
+                    graphics.beginPath();
+                    graphics.moveTo(obstacle.x + obstacle.width + WARNING_TRIANGLE_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT);
+                    graphics.lineTo(obstacle.x + obstacle.width - WARNING_MARKER_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT + WARNING_TRIANGLE_INDENT);
+                    graphics.lineTo(obstacle.x + obstacle.width - WARNING_MARKER_OFFSET, height - groundHeight - WARNING_MARKER_HEIGHT - WARNING_TRIANGLE_INDENT);
+                    graphics.closePath();
+                    graphics.fillPath();
+                    graphics.strokePath();
+                    
+                    // Draw hazard stripes across the gap
+                    graphics.lineStyle(2, 0xffff00, 0.7);
+                    for (let i = 0; i < obstacle.width; i += STRIPE_SPACING) {
+                        graphics.beginPath();
+                        graphics.moveTo(obstacle.x + i, height - groundHeight - STRIPE_START_OFFSET);
+                        graphics.lineTo(obstacle.x + i + STRIPE_WIDTH, height - groundHeight - STRIPE_END_OFFSET);
+                        graphics.strokePath();
+                    }
                 }
             }
             
