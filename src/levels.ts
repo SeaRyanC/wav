@@ -250,11 +250,14 @@ function generateJumpWindowLevel(
     
     let x = 600; // Start after initial safe zone
     let obstacleCount = 0;
+    let hasHadHeldJump = false; // Track if we've had a held jump for level 1
     
     while (x < length - 400) {
         // Determine obstacle type and height
         const rand = Math.random();
-        const isHoldJump = rand < holdJumpProbability && difficulty >= 3;
+        // Force at least one held jump for level 1, otherwise use normal probability
+        const forceHeldForLevel1 = difficulty === 1 && !hasHadHeldJump && obstacleCount >= 2;
+        const isHoldJump = forceHeldForLevel1 || (rand < holdJumpProbability && difficulty >= 2);
         
         let obstacleHeight: number;
         let obstacleWidth: number;
@@ -265,6 +268,7 @@ function generateJumpWindowLevel(
             obstacleHeight = baseObstacleHeight + 30 + Math.random() * 20;
             obstacleWidth = 50 + difficulty * 2;
             obstacleType = 'block';
+            hasHadHeldJump = true;
         } else if (rand < 0.5) {
             // Standard spike
             obstacleHeight = baseObstacleHeight + Math.random() * obstacleHeightVariation;
@@ -339,11 +343,12 @@ function generateJumpWindowLevel(
             });
             
             // Add the jump window
+            // Use isHoldJump to force the type if we specifically want a held jump obstacle
             const jumpWindow: JumpWindow = {
                 startX: windowStart,
                 endX: windowEnd,
-                type: clearance.needsHold ? 'hold' : 'tap',
-                holdDuration: clearance.needsHold ? clearance.holdDuration * 1000 : undefined
+                type: isHoldJump || clearance.needsHold ? 'hold' : 'tap',
+                holdDuration: (isHoldJump || clearance.needsHold) ? (clearance.holdDuration * 1000 || 200) : undefined
             };
             jumpWindows.push(jumpWindow);
         }
@@ -362,13 +367,23 @@ function generateWaveObstacles(difficulty: number, length: number): { obstacles:
     const obstacles: Obstacle[] = [];
     const jumpWindows: JumpWindow[] = [];
     
-    const spacing = Math.max(180 - difficulty * 8, 100);
-    const gapSize = Math.max(0.42 - difficulty * 0.015, 0.22);
+    // Increased spacing for easier gameplay (was: 180 - difficulty * 8, min 100)
+    const spacing = Math.max(240 - difficulty * 8, 140);
+    // Increased gap size for easier navigation (was: 0.42 - difficulty * 0.015, min 0.22)
+    const gapSize = Math.max(0.48 - difficulty * 0.015, 0.28);
+    // Maximum change in gap position between adjacent columns (smaller = smoother)
+    const maxGapChange = 0.15;
     
     let x = 600;
+    let lastGapY = 0.5; // Start gaps in the middle
     
     while (x < length - 200) {
-        const gapY = 0.2 + Math.random() * 0.5;
+        // Limit gap position change from previous column for smoother gameplay
+        const minGapY = Math.max(0.2, lastGapY - maxGapChange);
+        const maxGapY = Math.min(0.7, lastGapY + maxGapChange);
+        const gapY = minGapY + Math.random() * (maxGapY - minGapY);
+        lastGapY = gapY;
+        
         const actualGapSize = gapSize + Math.random() * 0.08;
         const obstacleWidth = 55 + difficulty * 2;
         
